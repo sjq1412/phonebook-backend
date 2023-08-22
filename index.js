@@ -31,26 +31,25 @@ app.get("/api/persons", (request, response) => {
     })
 });
 
-app.get("/api/persons/:id", (request, response) => {
+app.get("/api/persons/:id", (request, response, next) => {
     Person.findById(request.params.id).then(person => {
-        response.json(person)
-    }).catch(error => {
-        return response.sendStatus(404).end()
-    })
+        if (person) {
+            response.json(person)
+        } else {
+            response.status(404).end()
+        }
+    }).catch(error => next(error))
 });
 
-app.delete("/api/persons/:id", (request, response) => {
+app.delete("/api/persons/:id", (request, response, next) => {
     Person.findByIdAndRemove(request.params.id)
         .then(result => {
             response.status(204).end()
         })
-        .catch(error => {
-            console.log(error)
-            response.status(400).send({error: "malformatted id"})
-        });
+        .catch(error => next(error));
 });
 
-app.post("/api/persons", (request, response) => {
+app.post("/api/persons", (request, response, next) => {
     const body = request.body
 
     if (body.name === undefined || body.number === undefined) {
@@ -59,22 +58,29 @@ app.post("/api/persons", (request, response) => {
         })
     }
 
-    // const personExists = persons.some(person => person.name === body.name)
-    // if (personExists) {
-    //     return response.status(400).json({
-    //         error: "name must be unique"
-    //     })
-    // }
-
     const person = new Person({
         name: body.name,
         number: body.number
     })
 
-    person.save().then(savedPerson => {
-        response.json(savedPerson)
-    })
+    person.save()
+        .then(savedPerson => {
+            response.json(savedPerson)
+        })
+        .catch(error => next(error))
 })
+
+const errorHandler = (error, request, response, next) => {
+    console.log(error)
+
+    if (error.name === "CastError") {
+        response.status(400).send({error: "malformatted id"})
+    }
+
+    next(error)
+}
+
+app.use(errorHandler)
 
 const PORT = process.env.PORT;
 app.listen(PORT) 
