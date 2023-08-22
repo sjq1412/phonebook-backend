@@ -41,6 +41,21 @@ app.get("/api/persons/:id", (request, response, next) => {
     }).catch(error => next(error))
 });
 
+app.put("/api/persons/:id", (request, response, next) => {
+    const body = request.body
+
+    const person = {
+        name: body.name,
+        number: body.number
+    }
+
+    Person.findByIdAndUpdate(request.params.id, person, {new: true})
+        .then(updatedPerson => {
+            response.json(updatedPerson)
+        })
+        .catch(error => next(error))
+})
+
 app.delete("/api/persons/:id", (request, response, next) => {
     Person.findByIdAndRemove(request.params.id)
         .then(result => {
@@ -58,16 +73,31 @@ app.post("/api/persons", (request, response, next) => {
         })
     }
 
-    const person = new Person({
-        name: body.name,
-        number: body.number
-    })
-
-    person.save()
-        .then(savedPerson => {
-            response.json(savedPerson)
+    Person.find({name: body.name})
+        .then(result => { 
+            if (result.length) { 
+                const person = { 
+                    name: body.name,
+                    number: body.number
+                }
+                Person.findByIdAndUpdate(result[0].id, person, {new: true})
+                    .then(updatedPerson => {
+                        response.json(updatedPerson)
+                    })
+                    .catch(error => next(error))
+            } else { 
+                const person = new Person({
+                    name: body.name,
+                    number: body.number
+                })
+            
+                person.save()
+                    .then(savedPerson => {
+                        response.json(savedPerson)
+                    })
+                    .catch(error => next(error))
+            }
         })
-        .catch(error => next(error))
 })
 
 const errorHandler = (error, request, response, next) => {
