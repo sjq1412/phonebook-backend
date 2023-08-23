@@ -49,7 +49,7 @@ app.put("/api/persons/:id", (request, response, next) => {
         number: body.number
     }
 
-    Person.findByIdAndUpdate(request.params.id, person, {new: true})
+    Person.findByIdAndUpdate(request.params.id, person, {new: true, runValidators: true, context: "query"})
         .then(updatedPerson => {
             response.json(updatedPerson)
         })
@@ -67,12 +67,6 @@ app.delete("/api/persons/:id", (request, response, next) => {
 app.post("/api/persons", (request, response, next) => {
     const body = request.body
 
-    if (body.name === undefined || body.number === undefined) {
-        return response.status(400).json({
-            error: "missing name or number"
-        })
-    }
-
     Person.find({name: body.name})
         .then(result => { 
             if (result.length) { 
@@ -80,7 +74,7 @@ app.post("/api/persons", (request, response, next) => {
                     name: body.name,
                     number: body.number
                 }
-                Person.findByIdAndUpdate(result[0].id, person, {new: true})
+                Person.findByIdAndUpdate(result[0].id, person, {new: true, runValidators: true, context: "query"})
                     .then(updatedPerson => {
                         response.json(updatedPerson)
                     })
@@ -105,6 +99,9 @@ const errorHandler = (error, request, response, next) => {
 
     if (error.name === "CastError") {
         response.status(400).send({error: "malformatted id"})
+    }
+    if (error.name === "ValidationError") {
+        response.status(400).send({error: error.message})
     }
 
     next(error)
